@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -31,9 +31,25 @@ jobs:
       - name: Build debug APK
         run: gradle :app:assembleDebug
 
-      - name: Upload APK
+      - name: Copy APK with permanent name
+        run: cp app/build/outputs/apk/debug/app-debug.apk Jamaah-Reminder-September-2026.apk
+
+      - name: Upload APK as Actions artifact
         uses: actions/upload-artifact@v4
         with:
           name: Jamaah-Reminder-September-2026-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: Jamaah-Reminder-September-2026.apk
           if-no-files-found: error
+
+      - name: Publish APK permanently in GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view september-2026 >/dev/null 2>&1; then
+            gh release upload september-2026 Jamaah-Reminder-September-2026.apk --clobber
+          else
+            gh release create september-2026 Jamaah-Reminder-September-2026.apk \
+              --target "$GITHUB_SHA" \
+              --title "Jamaah Reminder - September 2026" \
+              --notes "Android APK for the September 2026 Jamaah Reminder app. This release keeps the compiled APK permanently in GitHub."
+          fi
